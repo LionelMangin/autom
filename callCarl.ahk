@@ -166,15 +166,21 @@ BinArr_ToString(BinArr, Encoding := "UTF-8")
    Return resp
   }
 
-^*::
-  {
+ProcessAndSendToAPI()
+{
    url := "https://api.mistral.ai/v1/agents/completions"
 
    old := A_Clipboard
    A_Clipboard := ""
-   Send("^a")
    Send("^c")
    ClipWait()
+
+   ; Vérifier si c'est la commande de rechargement
+   if (Trim(A_Clipboard) = "reloas")
+   {
+      Reload
+      return
+   }
 
    ; Détecter le style de saut de ligne original
    originalStyle := DetectLineEndingStyle(A_Clipboard)
@@ -196,12 +202,12 @@ BinArr_ToString(BinArr, Encoding := "UTF-8")
    http.WaitForResponse()
  
    if (http.Status != 200)
-     {
+   {
       errorText := BinArr_ToString(http.ResponseBody, "UTF-8")
       MsgBox("Erreur : " . http.Status . " => " . errorText)
-     }
-    else
-     {
+   }
+   else
+   {
       text := BinArr_ToString(http.ResponseBody, "UTF-8")
       arbre := jxon_load(&text)
       
@@ -214,8 +220,19 @@ BinArr_ToString(BinArr, Encoding := "UTF-8")
       
       A_Clipboard := unescapedContent
       Send("^v")
-     }
+   }
 
    Sleep(100)
    A_Clipboard := old
-  }
+}
+
+^*::
+{
+   Send("^a")
+   ProcessAndSendToAPI()
+}
+
+^+*::
+{
+   ProcessAndSendToAPI()
+}
