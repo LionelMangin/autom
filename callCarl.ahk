@@ -49,29 +49,103 @@ RestoreFromBackslashN(text, targetStyle)
 ; Fonction pour échapper les caractères spéciaux JSON
 JsonEscape(str)
   {
-   escaped := StrReplace(str, "\", "\\")
-   escaped := StrReplace(escaped, """", "\""")
-   escaped := StrReplace(escaped, "/", "\/")
-   escaped := StrReplace(escaped, "`b", "\b")
-   escaped := StrReplace(escaped, "`f", "\f")
-   escaped := StrReplace(escaped, "`n", "\n")
-   escaped := StrReplace(escaped, "`r", "\r")
-   escaped := StrReplace(escaped, "`t", "\t")
-   return escaped
+   static jsonEscapes := Map(
+     "\", "\\",        ; Backslash
+     '"', '\"',        ; Guillemets doubles
+     "/", "\/",        ; Slash (optionnel mais conventionnel)
+     "`b", "\b",       ; Backspace
+     "`f", "\f",       ; Form feed
+     "`n", "\n",       ; Nouvelle ligne
+     "`r", "\r",       ; Retour chariot
+     "`t", "\t"        ; Tabulation
+   )
+   
+   result := ""
+   i := 1
+   while (i <= StrLen(str))
+     {
+      char := SubStr(str, i, 1)
+      if (jsonEscapes.Has(char))
+        result .= jsonEscapes[char]
+      else
+        result .= char
+      i++
+     }
+   return result
   }
 
 ; Fonction pour désechapper les caractères spéciaux JSON
 JsonUnescape(str)
   {
-   unescaped := StrReplace(str, "\\", "\")
-   unescaped := StrReplace(unescaped, "\""", """")
-   unescaped := StrReplace(unescaped, "\/", "/")
-   unescaped := StrReplace(unescaped, "\b", "`b")
-   unescaped := StrReplace(unescaped, "\f", "`f")
-   unescaped := StrReplace(unescaped, "\n", "`n")
-   unescaped := StrReplace(unescaped, "\r", "`r")
-   unescaped := StrReplace(unescaped, "\t", "`t")
-   return unescaped
+   result := ""
+   i := 1
+   while (i <= StrLen(str))
+     {
+      char := SubStr(str, i, 1)
+      if (char = "\")
+        {
+         if (i < StrLen(str))
+           {
+            nextChar := SubStr(str, i + 1, 1)
+            if (nextChar = "\")
+              {
+               result .= "\"
+               i += 2
+              }
+            else if (nextChar = '"')
+              {
+               result .= '"'
+               i += 2
+              }
+            else if (nextChar = "/")
+              {
+               result .= "/"
+               i += 2
+              }
+            else if (nextChar = "b")
+              {
+               result .= "`b"
+               i += 2
+              }
+            else if (nextChar = "f")
+              {
+               result .= "`f"
+               i += 2
+              }
+            else if (nextChar = "n")
+              {
+               result .= "`n"
+               i += 2
+              }
+            else if (nextChar = "r")
+              {
+               result .= "`r"
+               i += 2
+              }
+            else if (nextChar = "t")
+              {
+               result .= "`t"
+               i += 2
+              }
+            else
+              {
+               result .= char
+               i++
+              }
+           }
+         else
+           {
+            result .= char
+            i++
+           }
+        }
+      else
+        {
+         result .= char
+         i++
+        }
+     }
+   return result
   }
 
 BinArr_ToString(BinArr, Encoding := "UTF-8")
@@ -123,7 +197,8 @@ BinArr_ToString(BinArr, Encoding := "UTF-8")
  
    if (http.Status != 200)
      {
-      MsgBox("Erreur : " . http.Status . " => " . http.responseBody)
+      errorText := BinArr_ToString(http.ResponseBody, "UTF-8")
+      MsgBox("Erreur : " . http.Status . " => " . errorText)
      }
     else
      {
