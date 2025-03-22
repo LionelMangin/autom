@@ -1,6 +1,7 @@
 #Requires AutoHotkey v2.0.11+
 
 #Include C:\Program Files\AutoHotkey\Lib\_JXON.ahk
+#Include config.ahk
 
 ; Fonction pour détecter le style de saut de ligne
 DetectLineEndingStyle(text)
@@ -168,8 +169,6 @@ BinArr_ToString(BinArr, Encoding := "UTF-8")
 
 ProcessAndSendToAPI()
 {
-   url := "https://api.mistral.ai/v1/agents/completions"
-
    old := A_Clipboard
    A_Clipboard := ""
    Send("^c")
@@ -190,11 +189,11 @@ ProcessAndSendToAPI()
 
    ; Échapper le contenu avant de l'envoyer (sans traiter les sauts de ligne)
    escapedContent := JsonEscape(normalizedContent)
-   data := '{ "agent_id": "ag:f64a9592:20250302:carla:cb28af32", "messages": [ { "role": "user", "content": "' . escapedContent . '" } ] }'
+   data := '{ "agent_id": "' . API_AGENT_ID . '", "messages": [ { "role": "user", "content": "' . escapedContent . '" } ] }'
       
    http := ComObject("WinHttp.WinHttpRequest.5.1")
-   http.Open("POST", url)
-   http.SetRequestHeader("Authorization", "Bearer NZH6j2F11hefHAhO6yxo92RNe0PtfhCm")
+   http.Open("POST", API_URL)
+   http.SetRequestHeader("Authorization", "Bearer " . API_KEY)
    http.SetRequestHeader("Content-Type", "application/json")
    http.SetRequestHeader("Accept", "application/json")
    http.SetRequestHeader("Accept-Charset", "UTF-8")
