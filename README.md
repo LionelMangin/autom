@@ -1,5 +1,10 @@
 # Autom - Assistant IA avec AutoHotkey
 
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/LionelMangin/autom/releases)
+[![AutoHotkey](https://img.shields.io/badge/AutoHotkey-v2.0.11+-green.svg)](https://www.autohotkey.com/)
+[![Licence](https://img.shields.io/badge/licence-MIT-yellow.svg)](LICENSE)
+[![Windows](https://img.shields.io/badge/Windows-10+-0078D6.svg)](https://www.microsoft.com/fr-fr/windows)
+
 Un script AutoHotkey qui permet d'interagir facilement avec l'API Mistral AI pour obtenir des réponses à vos questions directement depuis n'importe quelle application.
 
 ## Fonctionnalités
