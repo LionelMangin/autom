@@ -167,7 +167,7 @@ BinArr_ToString(BinArr, Encoding := "UTF-8")
    Return resp
   }
 
-ProcessAndSendToAPI()
+ProcessAndSendToAPI(agent)
 {
    old := A_Clipboard
    A_Clipboard := ""
@@ -189,7 +189,15 @@ ProcessAndSendToAPI()
 
    ; Échapper le contenu avant de l'envoyer (sans traiter les sauts de ligne)
    escapedContent := JsonEscape(normalizedContent)
-   data := '{ "agent_id": "' . API_AGENT_ID . '", "messages": [ { "role": "user", "content": "' . escapedContent . '" } ] }'
+   if (agent != "Carla")
+   {
+      agent_id := API_AGENT_ID_MAEL
+   }
+   else
+   {
+      agent_id := API_AGENT_ID_Carla
+   }
+   data := '{ "agent_id": "' . agent_id . '", "messages": [ { "role": "user", "content": "' . escapedContent . '" } ] }'
       
    http := ComObject("WinHttp.WinHttpRequest.5.1")
    http.Open("POST", API_URL)
@@ -228,10 +236,22 @@ ProcessAndSendToAPI()
 ^*::
 {
    Send("^a")
-   ProcessAndSendToAPI()
+   ProcessAndSendToAPI("Carla")
 }
 
 ^+*::
 {
-   ProcessAndSendToAPI()
+   ProcessAndSendToAPI("Carla")
 }
+
+^$::
+{
+   Send("^a")
+   ProcessAndSendToAPI("Maël")
+}
+
+^+$::
+{
+   ProcessAndSendToAPI("Maël")
+}
+
