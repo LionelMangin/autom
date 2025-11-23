@@ -205,25 +205,25 @@ SendToAPI(agent, escapedContent)
   }
 
 
-; Fonction d'envoi local
-SendToJan(agent, escapedContent) 
+; Fonction d'envoi local pour LMStudio
+SendToLMStudio(agent, escapedContent)
   {
    ; Lire l'agent_id depuis le fichier correspondant
    if (agent != "Carla")
      {
-      file := FileRead( A_ScriptDir . "\\Maël.prt" )
+      file := FileRead(A_ScriptDir . "\\Maël.prt")
      }
     else
      {
-      file := FileRead( A_ScriptDir . "\\Carla.prt")
+      file := FileRead(A_ScriptDir . "\\Carla.prt")
      }
    prompt := StrReplace(file, "`n", " ")
-   
-   data := '{ "model": "' . JAN_MODEL . '", "temperature": 0.3, "messages": [ { "role": "system", "content": "' . prompt . '" }, { "role": "user", "content": "' . escapedContent . '"  } ] }'
+
+   data := '{ "model": "' . LMSTUDIO_MODEL . '", "temperature": 0.3, "messages": [ { "role": "system", "content": "' . prompt . '" }, { "role": "user", "content": "' . escapedContent . '" } ] }'
 
    http := ComObject("WinHttp.WinHttpRequest.5.1")
-   http.Open("POST", JAN_URL)
-   http.SetRequestHeader("Authorization", "Bearer " . JAN_KEY)
+   http.Open("POST", LMSTUDIO_URL)
+   ; http.SetRequestHeader("Authorization", "Bearer " . JAN_KEY)
    http.SetRequestHeader("Content-Type", "application/json")
    http.SetRequestHeader("Accept", "application/json")
    http.SetRequestHeader("Accept-Charset", "UTF-8")
@@ -240,10 +240,9 @@ SendToJan(agent, escapedContent)
      {
       text := BinArr_ToString(http.ResponseBody, "UTF-8")
 
-      return text  
+      return text
      }
   }
-
 
 ; Fonction de traitement commune
 Process(agent, text) 
@@ -296,7 +295,7 @@ ProcessAndSend(agent, useAPI := true)
      }
     else 
      {
-      response := SendToJan(agent, processed["content"])
+      response := SendToLMStudio(agent, processed["content"])
      }
 
    ; Traiter la réponse
