@@ -6,8 +6,6 @@ global API_URL := "https://api.mistral.ai/v1/agents/completions"
 global API_AGENT_ID_CARLA := "votre_agent_id_ici"  ; Remplacez par votre ID d'agent Mistral de correction
 global API_AGENT_ID_MAEL := "votre_agent_id_ici"  ; Remplacez par votre ID d'agent Mistral de tranduction
 
-; Configuration de l'appel à Jan
-global JAN_KEY := "jan.key"
-global JAN_URL := "http://localhost:1337/chat/completions"
-global JAN_MODEL := "Mistral-Small-22B-ArliAI-RPMax-v1_1-IQ4_XS"
-
+; Configuration de l'appel à LMStudio
+global LMSTUDIO_URL := "http://localhost:1234/v1/chat/completions"
+global LMSTUDIO_MODEL := "Mistral-Small-22B-ArliAI-RPMax-v1_1-IQ4_XS"
