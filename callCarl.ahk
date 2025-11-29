@@ -1,5 +1,4 @@
 #Requires AutoHotkey v2.0.11+
-
 #Include C:\Program Files\AutoHotkey\Lib\_JXON.ahk
 #Include config.ahk
 
@@ -60,7 +59,6 @@ JsonEscape(str)
      "`r", "\r",       ; Retour chariot
      "`t", "\t"        ; Tabulation
    )
-   
    result := ""
    i := 1
    while (i <= StrLen(str))
@@ -156,166 +154,169 @@ BinArr_ToString(BinArr, Encoding := "UTF-8")
    oADO := ComObject("ADODB.Stream")
    oADO.Type := 1 ; adTypeBinary
    oADO.Mode := 3 ; adModeReadWrite
-   
    oADO.Open
-   
    oADO.Write(BinArr)
-   
    oADO.Position := 0, oADO.Type := 2, oADO.Charset := Encoding ; adTypeText
    resp := oADO.ReadText()
    oADO.Close
    Return resp
   }
 
-
-; Fonction d'envoi à l'API
-SendToAPI(agent, escapedContent) 
+; Fonction factorisée pour envoyer une requête HTTP avec timeout
+SendHttpRequest(url, data, headers, timeoutMs := 30000)
   {
-   if (agent != "Carla") 
+   try
      {
-      agent_id := API_AGENT_ID_MAEL
-     } 
-    else 
-     {
-      agent_id := API_AGENT_ID_Carla
+      http := ComObject("WinHttp.WinHttpRequest.5.1")
+      http.Open("POST", url)
+      for key, value in headers
+        http.SetRequestHeader(key, value)
+      ; Configuration des timeouts en millisecondes
+      ; Option 4 = ResolveTimeout, Option 5 = ConnectTimeout
+      ; Option 6 = SendTimeout, Option 7 = ReceiveTimeout
+      http.SetTimeouts(timeoutMs, timeoutMs, timeoutMs, timeoutMs)
+      http.Send(data)
+      ; WaitForResponse attend un paramètre en SECONDES (ou -1 pour infini)
+      ; Convertir ms en secondes correctement
+      timeoutSeconds := timeoutMs / 1000
+      http.WaitForResponse(timeoutSeconds)
+      if (http.Status != 200)
+        {
+         errorText := BinArr_ToString(http.ResponseBody, "UTF-8")
+         return Map("error", "Erreur : " . http.Status . " => " . errorText, "status", http.Status)
+        }
+       else
+        {
+         return Map("text", BinArr_ToString(http.ResponseBody, "UTF-8"), "status", http.Status)
+        }
      }
-
-   data := '{ "agent_id": "' . agent_id . '", "messages": [ { "role": "user", "content": "' . escapedContent . '" } ] }'
-
-   http := ComObject("WinHttp.WinHttpRequest.5.1")
-   http.Open("POST", API_URL)
-   http.SetRequestHeader("Authorization", "Bearer " . API_KEY)
-   http.SetRequestHeader("Content-Type", "application/json")
-   http.SetRequestHeader("Accept", "application/json")
-   http.SetRequestHeader("Accept-Charset", "UTF-8")
-   http.Send(data)
-   http.WaitForResponse()
-
-   if (http.Status != 200) 
+   catch as err
      {
-      errorText := BinArr_ToString(http.ResponseBody, "UTF-8")
-      MsgBox("Erreur : " . http.Status . " => " . errorText)
-      return ""
-     } 
-    else 
-     {
-      text := BinArr_ToString(http.ResponseBody, "UTF-8")
-      return text
+      return Map("error", "Timeout ou erreur de connexion: " . err.Message, "status", 0)
      }
   }
 
+; Fonction d'envoi à l'API avec gestion de timeout
+SendToAPI(agent, escapedContent)
+  {
+   if (agent != "Carla")
+     {
+      agent_id := API_AGENT_ID_MAEL
+     }
+    else
+     {
+      agent_id := API_AGENT_ID_Carla
+     }
+   data := '{ "agent_id": "' . agent_id . '", "messages": [ { "role": "user", "content": "' . escapedContent . '" } ] }'
+   headers := Map(
+     "Authorization", "Bearer " . API_KEY,
+     "Content-Type", "application/json",
+     "Accept", "application/json",
+     "Accept-Charset", "UTF-8"
+   )
+   result := SendHttpRequest(API_URL, data, headers)
+   if (result.Has("error"))
+     {
+      MsgBox(result["error"])
+      return ""
+     }
+    else
+     {
+      return result["text"]
+     }
+  }
 
-; Fonction d'envoi local pour LMStudio
+; Fonction d'envoi local pour LMStudio avec gestion de timeout
 SendToLMStudio(agent, escapedContent)
   {
    ; Lire l'agent_id depuis le fichier correspondant
    if (agent != "Carla")
      {
-      file := FileRead(A_ScriptDir . "\\Maël.prt")
+      file := FileRead(A_ScriptDir . "\Maël.prt")
      }
     else
      {
-      file := FileRead(A_ScriptDir . "\\Carla.prt")
+      file := FileRead(A_ScriptDir . "\Carla.prt")
      }
    prompt := StrReplace(file, "`n", " ")
-
    data := '{ "model": "' . LMSTUDIO_MODEL . '", "temperature": 0.3, "messages": [ { "role": "system", "content": "' . prompt . '" }, { "role": "user", "content": "' . escapedContent . '" } ] }'
-
-   http := ComObject("WinHttp.WinHttpRequest.5.1")
-   http.Open("POST", LMSTUDIO_URL)
-   ; http.SetRequestHeader("Authorization", "Bearer " . JAN_KEY)
-   http.SetRequestHeader("Content-Type", "application/json")
-   http.SetRequestHeader("Accept", "application/json")
-   http.SetRequestHeader("Accept-Charset", "UTF-8")
-   http.Send(data)
-   http.WaitForResponse()
-
-   if (http.Status != 200)
+   headers := Map(
+     "Content-Type", "application/json",
+     "Accept", "application/json",
+     "Accept-Charset", "UTF-8"
+   )
+   result := SendHttpRequest(LMSTUDIO_URL, data, headers)
+   if (result.Has("error"))
      {
-      errorText := BinArr_ToString(http.ResponseBody, "UTF-8")
-      MsgBox("Erreur : " . http.Status . " => " . errorText)
+      MsgBox(result["error"])
       return ""
      }
     else
      {
-      text := BinArr_ToString(http.ResponseBody, "UTF-8")
-
-      return text
+      return result["text"]
      }
   }
 
 ; Fonction de traitement commune
-Process(agent, text) 
+Process(agent, text)
   {
    ; Vérifier si c'est la commande de rechargement
    if (Trim(text) = "reloas") {
       Reload
       return ""
    }
-
- 
    ; Détecter le style de saut de ligne original
    originalStyle := DetectLineEndingStyle(text)
-
    ; Convertir les sauts de ligne en séquence \n
    normalizedContent := NormalizeToBackslashN(text, originalStyle)
-
    ; Échapper le contenu avant de l'envoyer (sans traiter les sauts de ligne)
    escapedContent := JsonEscape(normalizedContent)
-
    ; Retourner les données préparées et le style original
    result := Map()
    result["content"] := escapedContent
    result["originalStyle"] := originalStyle
-
    return result
   }
 
 ; Fonction factorisée pour le traitement et l'envoi
-ProcessAndSend(agent, useAPI := true) 
+ProcessAndSend(agent, useAPI := true)
   {
    old := A_Clipboard
    A_Clipboard := ""
    Send("^c")
    ClipWait()
-
    ; Traiter le contenu
    originaltext := A_Clipboard
    processed := Process(agent, originaltext)
-   if (processed = "") 
+   if (processed = "")
      {
       A_Clipboard := old
       return
      }
-
    ; Envoyer selon le mode
-   if (useAPI) 
+   if (useAPI)
      {
       response := SendToAPI(agent, processed["content"])
      }
-    else 
+    else
      {
       response := SendToLMStudio(agent, processed["content"])
      }
-
    ; Traiter la réponse
-   if (response != "") 
+   if (response != "")
      {
       arbre := Jxon_Load(&response)
       content := arbre["choices"][1]["message"]["content"]
       unescapedContent := JsonUnescape(content)
       unescapedContent := RestoreFromBackslashN(unescapedContent, processed["originalStyle"])
-
       ; des fois en local il y a un ajout d'un espace au début
       if (SubStr(unescapedContent, 1, 1) == " " && SubStr(originaltext, 1, 1) != " ")
         {
           unescapedContent := SubStr(unescapedContent, 2)
         }
-
       A_Clipboard := unescapedContent
       Send("^v")
      }
-
    Sleep(100)
    A_Clipboard := old
   }
@@ -364,4 +365,3 @@ ProcessAndSend(agent, useAPI := true)
 {
    ProcessAndSend("Maël", false)
 }
-
